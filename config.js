@@ -44,7 +44,7 @@ window.JPEQ_CONFIG = {
   // through it, which fixes iPhone Safari blocking NIED's http-only servers.
   // Example: relay: 'https://jpeq-relay.YOUR-NAME.workers.dev'
   // (Can also be set from the phone by opening the site with ?relay=<url>.)
-  relay: '',
+  relay: 'https://jpeq-relay.sileemamr.workers.dev',
 
   // Legacy: CORS proxy for the JSON files only (not needed when relay is set).
   // Leave empty to try direct access first. Example after deploying proxy/worker.js:
