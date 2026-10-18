@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>JPEQ Monitor</title>
+  <meta name="description" content="Lightweight mobile viewer for NIED 強震モニタ real-time strong-motion data.">
+  <meta name="theme-color" content="#0e1116">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="JPEQ">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <header class="top">
+      <div class="brand">JPEQ <span>Monitor</span></div>
+      <div class="status" id="status" aria-live="polite">
+        <span class="dot" id="statusDot"></span>
+        <span id="statusText">Connecting…</span>
+      </div>
+    </header>
+
+    <section class="clock" aria-label="Displayed time">
+      <div class="mode" id="modeBadge">LIVE</div>
+      <time class="time" id="frameTime">--:--:--</time>
+      <div class="date" id="frameDate">----/--/--</div>
+    </section>
+
+    <section class="eew" id="eew" hidden aria-live="assertive">
+      <div class="eew-head">
+        <span class="eew-kind" id="eewKind">緊急地震速報（予報）</span>
+        <span class="eew-num" id="eewNum">第1報</span>
+      </div>
+      <div class="eew-region" id="eewRegion">—</div>
+      <div class="eew-grid">
+        <div><small>予想最大震度</small><b id="eewInt">—</b></div>
+        <div><small>規模</small><b id="eewMag">—</b></div>
+        <div><small>深さ</small><b id="eewDepth">—</b></div>
+        <div><small>発生時刻</small><b id="eewTime">—</b></div>
+      </div>
+    </section>
+
+    <section class="map" aria-label="Real-time strong-motion map">
+      <img id="baseMap" class="layer" alt="" decoding="async">
+      <img id="rtLayer" class="layer" alt="" decoding="async">
+      <img id="estLayer" class="layer" alt="" decoding="async" hidden>
+      <img id="psLayer" class="layer" alt="" decoding="async" hidden>
+      <div class="map-note" id="mapNote" hidden></div>
+    </section>
+
+    <section class="legend" aria-label="Color scale">
+      <div class="scale" id="scale"></div>
+      <div class="ticks" id="ticks"></div>
+    </section>
+
+    <section class="controls">
+      <label class="select">
+        <span class="sr">Measure</span>
+        <select id="measure">
+          <option value="jma">計測震度 Intensity</option>
+          <option value="acmap">最大加速度 PGA</option>
+          <option value="vcmap">最大速度 PGV</option>
+          <option value="dcmap">最大変位 PGD</option>
+          <option value="rsp0125">応答 0.125秒</option>
+          <option value="rsp0250">応答 0.25秒</option>
+          <option value="rsp0500">応答 0.5秒</option>
+          <option value="rsp1000">応答 1秒</option>
+          <option value="rsp2000">応答 2秒</option>
+          <option value="rsp4000">応答 4秒</option>
+        </select>
+      </label>
+      <div class="seg" role="group" aria-label="Sensor">
+        <button type="button" data-site="s" aria-pressed="true">地表</button>
+        <button type="button" data-site="b" aria-pressed="false">地中</button>
+      </div>
+    </section>
+
+    <nav class="playback" aria-label="Playback">
+      <div class="behind" id="behind">Showing live data</div>
+      <div class="pb-row">
+        <div class="jumps" id="jumps"></div>
+        <button type="button" class="pause" id="pauseBtn" hidden aria-label="Pause">❚❚</button>
+        <button type="button" class="live" id="liveBtn" aria-pressed="true"><i></i>LIVE</button>
+      </div>
+    </nav>
+
+    <footer class="credit">
+      データ：<a href="https://www.kmoni.bosai.go.jp/" target="_blank" rel="noopener">国立研究開発法人 防災科学技術研究所（NIED）強震モニタ</a><br>
+      JPEQ Monitor is an unofficial personal viewer and is not affiliated with NIED.
+      Source: <span id="srcLabel">kmoni</span>
+    </footer>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
