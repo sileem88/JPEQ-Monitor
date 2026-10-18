@@ -53,31 +53,10 @@
       <div class="map-note" id="mapNote" hidden></div>
     </section>
 
-    <section class="legend" aria-label="Color scale">
+    <section class="legend" aria-label="リアルタイム震度 color scale">
+      <div class="legend-title">リアルタイム震度</div>
       <div class="scale" id="scale"></div>
       <div class="ticks" id="ticks"></div>
-    </section>
-
-    <section class="controls">
-      <label class="select">
-        <span class="sr">Measure</span>
-        <select id="measure">
-          <option value="jma">計測震度 Intensity</option>
-          <option value="acmap">最大加速度 PGA</option>
-          <option value="vcmap">最大速度 PGV</option>
-          <option value="dcmap">最大変位 PGD</option>
-          <option value="rsp0125">応答 0.125秒</option>
-          <option value="rsp0250">応答 0.25秒</option>
-          <option value="rsp0500">応答 0.5秒</option>
-          <option value="rsp1000">応答 1秒</option>
-          <option value="rsp2000">応答 2秒</option>
-          <option value="rsp4000">応答 4秒</option>
-        </select>
-      </label>
-      <div class="seg" role="group" aria-label="Sensor">
-        <button type="button" data-site="s" aria-pressed="true">地表</button>
-        <button type="button" data-site="b" aria-pressed="false">地中</button>
-      </div>
     </section>
 
     <nav class="playback" aria-label="Playback">

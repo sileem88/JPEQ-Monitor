@@ -92,6 +92,7 @@ button, select { font: inherit; color: inherit; }
 }
 
 .legend { padding: 0 14px; }
+.legend-title { font-size: 12px; font-weight: 700; color: var(--muted); margin-bottom: 4px; }
 .scale {
   height: 10px; border-radius: 5px;
   background: linear-gradient(90deg, #0000cd, #0041ff, #00b9ff, #00f5a0, #7cff00, #f5ff00, #ffbb00, #ff4500, #c80000, #8b0000);

@@ -37,7 +37,6 @@
     mode: $('#modeBadge'), time: $('#frameTime'), date: $('#frameDate'),
     base: $('#baseMap'), rt: $('#rtLayer'), est: $('#estLayer'), ps: $('#psLayer'),
     note: $('#mapNote'), ticks: $('#ticks'),
-    measure: $('#measure'), seg: document.querySelectorAll('.seg button'),
     jumps: $('#jumps'), pause: $('#pauseBtn'), live: $('#liveBtn'), behind: $('#behind'),
     src: $('#srcLabel'),
     eew: $('#eew'), eewKind: $('#eewKind'), eewNum: $('#eewNum'), eewRegion: $('#eewRegion'),
@@ -56,8 +55,6 @@
     synced: false,
     lastSync: 0,
     fails: 0,
-    measure: load('measure', 'jma'),
-    site: load('site', 's'),
     seq: 0,
     shownSeq: 0,
     timer: null,
@@ -90,7 +87,7 @@
   function url(kind, t, s = src()) {
     const p = jstParts(t);
     return s.base + s.paths[kind]
-      .replaceAll('{layer}', `${S.measure}_${S.site}`)
+      .replaceAll('{layer}', 'jma_s') // リアルタイム震度 (surface)
       .replaceAll('{date}', p.date)
       .replaceAll('{ts}', p.ts);
   }
@@ -308,15 +305,11 @@
   }
 
   function renderLegend() {
-    const ticks = S.measure === 'jma'
-      ? ['-3', '-1', '1', '3', '5', '7']
-      : ['弱', '', '', '', '', '強'];
+    const ticks = ['-3', '-1', '1', '3', '5', '7'];
     el.ticks.innerHTML = ticks.map((x) => `<span>${x}</span>`).join('');
   }
 
   function renderControls() {
-    el.measure.value = S.measure;
-    el.seg.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.site === S.site)));
     el.live.setAttribute('aria-pressed', String(S.mode === 'live'));
     el.pause.hidden = S.mode !== 'replay';
     el.pause.textContent = S.paused ? '▶' : '❚❚';
@@ -357,8 +350,6 @@
     });
     el.live.addEventListener('click', goLive);
     el.pause.addEventListener('click', togglePause);
-    el.measure.addEventListener('change', () => { S.measure = el.measure.value; save('measure', S.measure); renderLegend(); refreshNow(); });
-    el.seg.forEach((b) => b.addEventListener('click', () => { S.site = b.dataset.site; save('site', S.site); refreshNow(); }));
 
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) { S.lastSync = 0; refreshNow(); }

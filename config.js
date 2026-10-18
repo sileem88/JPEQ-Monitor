@@ -21,22 +21,23 @@ window.JPEQ_CONFIG = {
         psWave:    '/data/map_img/PSWaveImg/eew/{date}/{ts}.eew.gif',
         eew:       '/webservice/hypo/eew/{ts}.json'
       }
-    },
-    {
-      // Backup: NIED's long-period monitor host serves the same kind of data.
-      id: 'lmoni',
-      label: 'lmoni (backup)',
-      base: 'https://www.lmoni.bosai.go.jp/monitor',
-      relayBase: '/lmoni/monitor',
-      paths: {
-        latest:    '/webservice/server/pros/latest.json',
-        baseMap:   '/data/data/map_img/CommonImg/base_map_w.gif',
-        realtime:  '/data/data/map_img/RealTimeImg/{layer}/{date}/{ts}.{layer}.gif',
-        estShindo: '/data/data/map_img/EstShindoImg/eew/{date}/{ts}.eew.gif',
-        psWave:    '/data/data/map_img/PSWaveImg/eew/{date}/{ts}.eew.gif',
-        eew:       '/webservice/hypo/eew/{ts}.json'
-      }
     }
+    // lmoni backup disabled for now (kmoni only). To re-enable, restore:
+    // {
+    //   // Backup: NIED's long-period monitor host serves the same kind of data.
+    //   id: 'lmoni',
+    //   label: 'lmoni (backup)',
+    //   base: 'https://www.lmoni.bosai.go.jp/monitor',
+    //   relayBase: '/lmoni/monitor',
+    //   paths: {
+    //     latest:    '/webservice/server/pros/latest.json',
+    //     baseMap:   '/data/data/map_img/CommonImg/base_map_w.gif',
+    //     realtime:  '/data/data/map_img/RealTimeImg/{layer}/{date}/{ts}.{layer}.gif',
+    //     estShindo: '/data/data/map_img/EstShindoImg/eew/{date}/{ts}.eew.gif',
+    //     psWave:    '/data/data/map_img/PSWaveImg/eew/{date}/{ts}.eew.gif',
+    //     eew:       '/webservice/hypo/eew/{ts}.json'
+    //   }
+    // }
   ],
 
   // JPEQ relay (proxy/worker.js on Cloudflare). When set, ALL NIED data goes
