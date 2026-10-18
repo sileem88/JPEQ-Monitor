@@ -19,6 +19,21 @@ const HOSTS = {
   lmoni: 'www.lmoni.bosai.go.jp'
 };
 
+// Scheme to try first for each host; the other one is tried if it fails.
+const SCHEMES = { kmoni: ['http', 'https'], lmoni: ['https', 'http'] };
+
+async function fetchNied(key, path, init = {}, timeoutMs = 4000) {
+  let lastErr;
+  for (const scheme of SCHEMES[key]) {
+    try {
+      const r = await fetch(`${scheme}://${HOSTS[key]}${path}`, { ...init, signal: AbortSignal.timeout(timeoutMs) });
+      if (r.status < 500) return r;
+      lastErr = new Error('HTTP ' + r.status);
+    } catch (e) { lastErr = e; }
+  }
+  throw lastErr;
+}
+
 // Sites allowed to read data through this relay.
 const ALLOWED_ORIGINS = ['https://sileem88.github.io'];
 
@@ -38,16 +53,16 @@ async function selfTest() {
   const date = `${now.getUTCFullYear()}${p(now.getUTCMonth() + 1)}${p(now.getUTCDate())}`;
   const ts = `${date}${p(now.getUTCHours())}${p(now.getUTCMinutes())}${p(now.getUTCSeconds())}`;
   const checks = {
-    'kmoni time':  `http://${HOSTS.kmoni}/webservice/server/pros/latest.json`,
-    'kmoni map':   `http://${HOSTS.kmoni}/data/map_img/RealTimeImg/jma_s/${date}/${ts}.jma_s.gif`,
-    'lmoni time':  `http://${HOSTS.lmoni}/monitor/webservice/server/pros/latest.json`,
-    'lmoni map':   `http://${HOSTS.lmoni}/monitor/data/data/map_img/RealTimeImg/jma_s/${date}/${ts}.jma_s.gif`
+    'kmoni time':  ['kmoni', '/webservice/server/pros/latest.json'],
+    'kmoni map':   ['kmoni', `/data/map_img/RealTimeImg/jma_s/${date}/${ts}.jma_s.gif`],
+    'lmoni time':  ['lmoni', '/monitor/webservice/server/pros/latest.json'],
+    'lmoni map':   ['lmoni', `/monitor/data/data/map_img/RealTimeImg/jma_s/${date}/${ts}.jma_s.gif`]
   };
   const lines = ['JPEQ relay self-test', ''];
-  for (const [name, url] of Object.entries(checks)) {
+  for (const [name, [key, path]] of Object.entries(checks)) {
     const t0 = Date.now();
     try {
-      const r = await fetch(url, { signal: AbortSignal.timeout(5000) });
+      const r = await fetchNied(key, path);
       const body = name.endsWith('time') ? (await r.text()).slice(0, 120) : `${(await r.arrayBuffer()).byteLength} bytes`;
       lines.push(`${name}: HTTP ${r.status} in ${Date.now() - t0} ms — ${body}`);
     } catch (e) {
@@ -71,7 +86,6 @@ export default {
     if (!m || !/\.(gif|json)$/.test(m[2]) || m[2].includes('..')) {
       return new Response('Not allowed', { status: 403, headers: cors });
     }
-    const target = `http://${HOSTS[m[1]]}${m[2]}`;
 
     // Frames named by timestamp never change; "latest" style files change every second.
     const timestamped = /\d{14}\.[a-z_0-9.]+$/.test(m[2]);
@@ -80,8 +94,7 @@ export default {
 
     let upstream;
     try {
-      upstream = await fetch(target, {
-        signal: AbortSignal.timeout(6000),
+      upstream = await fetchNied(m[1], m[2], {
         cf: { cacheEverything: true, cacheTtl: ttl, cacheTtlByStatus: { '200-299': ttl, '404': 1, '500-599': 0 } }
       });
     } catch (e) {
