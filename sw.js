@@ -1,7 +1,7 @@
 // JPEQ Monitor service worker
 // Caches the app itself and the static base map so the page opens
 // even when the network is congested. Live frames are never cached.
-const CACHE = 'jpeq-v1';
+const CACHE = 'jpeq-v2';
 const SHELL = ['./', 'index.html', 'style.css', 'app.js', 'config.js', 'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-180.png', 'icons/icon-512.png'];
 
 self.addEventListener('install', (e) => {
@@ -33,17 +33,18 @@ self.addEventListener('fetch', (e) => {
     return;
   }
 
-  // App shell: serve from cache, refresh in the background.
+  // App shell: network first (so updates arrive immediately), cache if offline/slow.
   if (url.origin === self.location.origin) {
-    e.respondWith(
-      caches.match(req).then((hit) => {
-        const net = fetch(req).then((res) => {
-          if (res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(req, copy)); }
-          return res;
-        }).catch(() => hit);
-        return hit || net;
-      })
-    );
+    e.respondWith((async () => {
+      try {
+        const res = await fetch(req, { signal: AbortSignal.timeout(4000) });
+        if (res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(req, copy)); }
+        return res;
+      } catch {
+        return (await caches.match(req, { ignoreSearch: true })) || Response.error();
+      }
+    })());
+    return;
   }
   // Everything else (live NIED data) goes straight to the network.
 });

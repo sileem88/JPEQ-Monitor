@@ -34,14 +34,20 @@ For official information always refer to NIED and the Japan Meteorological Agenc
 3. After a minute the site is at `https://<your-username>.github.io/JPEQ-Monitor/`.
 4. On iPhone, open it in Safari → Share → **Add to Home Screen**.
 
-## If the EEW panel never appears / the clock says "syncing"
+## The JPEQ relay (required on iPhone)
 
-The map images load fine cross-site, but the two JSON feeds (server time and
-EEW text) need the NIED server to allow cross-origin requests. If it doesn't,
-deploy the small proxy in `proxy/worker.js` (free Cloudflare Worker, steps
-inside the file) and put its URL in `config.js` → `proxy`.
-Without the proxy the map still works; the app falls back to the device clock
-and shows the EEW map overlays whenever they exist.
+NIED's monitors serve plain http, and Safari blocks http requests from an
+https page such as GitHub Pages. `proxy/worker.js` is a small Cloudflare
+Worker (free plan) that fetches NIED's files over http and passes them to the
+page over https. It only passes NIED `.gif`/`.json` files, and it caches each
+timestamped frame so NIED is asked for it once.
+
+1. Create a free Cloudflare account and open **Workers & Pages**.
+2. **Create → Create Worker**, name it `jpeq-relay`, **Deploy**.
+3. **Edit code**, replace everything with `proxy/worker.js`, **Deploy**.
+4. Open `https://jpeq-relay.<your-subdomain>.workers.dev/test` to check NIED is reachable.
+5. Put that address in `config.js` → `relay`, or open the site once with
+   `?relay=https://jpeq-relay.<your-subdomain>.workers.dev` (remembered on that device).
 
 ## Files
 
@@ -51,7 +57,7 @@ and shows the EEW map overlays whenever they exist.
 | `app.js` | Polling, fallback, EEW, replay |
 | `config.js` | NIED URL patterns, proxy setting, replay buttons |
 | `sw.js`, `manifest.webmanifest`, `icons/` | Home-screen app + offline shell |
-| `proxy/worker.js` | Optional CORS proxy for the JSON feeds |
+| `proxy/worker.js` | JPEQ relay (Cloudflare Worker) |
 
 ## Notes
 

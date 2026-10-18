@@ -12,6 +12,7 @@ window.JPEQ_CONFIG = {
       id: 'kmoni',
       label: 'kmoni',
       base: 'https://www.kmoni.bosai.go.jp',
+      relayBase: '/kmoni',
       paths: {
         latest:    '/webservice/server/pros/latest.json',
         baseMap:   '/data/map_img/CommonImg/base_map_w.gif',
@@ -26,6 +27,7 @@ window.JPEQ_CONFIG = {
       id: 'lmoni',
       label: 'lmoni (backup)',
       base: 'https://www.lmoni.bosai.go.jp/monitor',
+      relayBase: '/lmoni/monitor',
       paths: {
         latest:    '/webservice/server/pros/latest.json',
         baseMap:   '/data/data/map_img/CommonImg/base_map_w.gif',
@@ -37,7 +39,13 @@ window.JPEQ_CONFIG = {
     }
   ],
 
-  // Optional CORS proxy for the JSON files (time sync + EEW text).
+  // JPEQ relay (proxy/worker.js on Cloudflare). When set, ALL NIED data goes
+  // through it, which fixes iPhone Safari blocking NIED's http-only servers.
+  // Example: relay: 'https://jpeq-relay.YOUR-NAME.workers.dev'
+  // (Can also be set from the phone by opening the site with ?relay=<url>.)
+  relay: '',
+
+  // Legacy: CORS proxy for the JSON files only (not needed when relay is set).
   // Leave empty to try direct access first. Example after deploying proxy/worker.js:
   //   proxy: 'https://jpeq-proxy.YOUR-NAME.workers.dev/?url='
   proxy: '',

@@ -6,6 +6,22 @@
   'use strict';
 
   const CFG = window.JPEQ_CONFIG;
+
+  // Relay: config.js, or ?relay=<url> once (remembered on this device; ?relay=off clears it).
+  (() => {
+    let relay = CFG.relay || '';
+    try {
+      const q = new URLSearchParams(location.search).get('relay');
+      if (q === 'off') localStorage.removeItem('jpeq.relay');
+      else if (q) localStorage.setItem('jpeq.relay', q.replace(/\/+$/, ''));
+      relay = localStorage.getItem('jpeq.relay') || relay;
+    } catch { /* ignore */ }
+    if (relay) {
+      CFG.relayActive = relay;
+      CFG.proxy = '';
+      for (const s of CFG.sources) s.base = relay.replace(/\/+$/, '') + s.relayBase;
+    }
+  })();
   const $ = (s) => document.querySelector(s);
   const JST = 9 * 3600e3;
 
@@ -152,7 +168,7 @@
     S.fails = 0;
     S.switchedAt = Date.now();
     S.synced = false;
-    el.src.textContent = src().label;
+    el.src.textContent = src().label + (CFG.relayActive ? ' via JPEQ relay' : '');
     loadBaseMap();
     syncClock();
   }
@@ -348,7 +364,7 @@
       if (!document.hidden) { S.lastSync = 0; refreshNow(); }
     });
 
-    el.src.textContent = src().label;
+    el.src.textContent = src().label + (CFG.relayActive ? ' via JPEQ relay' : '');
     renderLegend();
     renderControls();
     loadBaseMap();
