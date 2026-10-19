@@ -364,6 +364,7 @@
     });
 
     el.src.textContent = src().label + (S.forcedSrc ? ' (pinned)' : '') + (CFG.relayActive ? ' via JPEQ relay' : '');
+    document.querySelector('#verLabel').textContent = CFG.version || '';
     renderLegend();
     renderControls();
     loadBaseMap();

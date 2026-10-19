@@ -31,7 +31,12 @@ async function fetchNied(key, path, init = {}, timeoutMs = 4000) {
     try {
       const r = await fetch(`${scheme}://${HOSTS[key]}${path}`, {
         ...init,
-        headers: { 'User-Agent': UA, ...(init.headers || {}) },
+        headers: {
+          'User-Agent': UA,
+          // lmoni's image server may only answer requests that come from its own page.
+          ...(key === 'lmoni' ? { 'Referer': 'https://www.lmoni.bosai.go.jp/monitor/' } : {}),
+          ...(init.headers || {})
+        },
         signal: AbortSignal.timeout(timeoutMs)
       });
       if (r.status < 500) return r;
@@ -113,7 +118,7 @@ async function discoverLmoniPaths() {
 }
 
 async function selfTest() {
-  const L = ['JPEQ relay self-test', ''];
+  const L = ['JPEQ relay self-test (relay v3)', ''];
 
   // kmoni
   L.push('== kmoni ==');

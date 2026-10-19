@@ -7,6 +7,9 @@
  * {layer} = e.g. jma_s, {date} = YYYYMMDD (JST), {ts} = YYYYMMDDHHmmss (JST)
  */
 window.JPEQ_CONFIG = {
+  // Shown in the footer so you can tell when your phone has the latest site.
+  version: 'v3',
+
   sources: [
     {
       id: 'kmoni',
