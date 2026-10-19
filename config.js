@@ -27,15 +27,17 @@ window.JPEQ_CONFIG = {
       // リアルタイム震度 frames. Used automatically when kmoni stops answering.
       id: 'lmoni',
       label: 'lmoni (backup)',
-      base: 'https://www.lmoni.bosai.go.jp/monitor',
-      relayBase: '/lmoni/monitor',
+      base: 'https://www.lmoni.bosai.go.jp',
+      relayBase: '/lmoni',
+      // Paths taken from lmoni's own page script (prism_longperiod.js):
+      // live frames and server time come from /img_svr/, EEW and base map from /monitor/.
       paths: {
-        latest:    '/webservice/server/pros/latest.json',
-        baseMap:   '/data/data/map_img/CommonImg/base_map_w.gif',
-        realtime:  '/data/data/map_img/RealTimeImg/{layer}/{date}/{ts}.{layer}.gif',
-        estShindo: '/data/data/map_img/EstShindoImg/eew/{date}/{ts}.eew.gif',
-        psWave:    '/data/data/map_img/PSWaveImg/eew/{date}/{ts}.eew.gif',
-        eew:       '/webservice/hypo/eew/{ts}.json'
+        latest:    '/img_svr/webservice/server/pros/latest.json',
+        baseMap:   '/monitor/data/data/map_img/CommonImg/base_map_w.gif',
+        realtime:  '/img_svr/data/map_img/RealTimeImg/{layer}/{date}/{ts}.{layer}.gif',
+        estShindo: '/img_svr/data/map_img/EstShindoImg/eew/{date}/{ts}.eew.gif',
+        psWave:    '/img_svr/data/map_img/PSWaveImg/eew/{date}/{ts}.eew.gif',
+        eew:       '/monitor/webservice/hypo/eew/{ts}.json'
       }
     }
   ],

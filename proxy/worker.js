@@ -71,8 +71,11 @@ async function probe(key, path, asText) {
   const t0 = Date.now();
   try {
     const r = await fetchNied(key, path);
+    const type = r.headers.get('Content-Type') || '';
     const body = asText ? (await r.text()) : (await r.arrayBuffer()).byteLength;
-    return { ok: r.status === 200, status: r.status, ms: Date.now() - t0, body };
+    const isHtml = type.includes('html') || (typeof body === 'string' && /^\s*<!doctype html/i.test(body));
+    const wantHtml = path.endsWith('/');
+    return { ok: r.status === 200 && (wantHtml || !isHtml), status: r.status + (isHtml && !wantHtml ? ' (HTML page, not data)' : ''), ms: Date.now() - t0, body };
   } catch (e) {
     return { ok: false, status: 'FAILED', ms: Date.now() - t0, body: e.message };
   }
@@ -122,29 +125,17 @@ async function selfTest() {
   L.push(line('map', kmap, await probe('kmoni', kmap)));
   L.push('');
 
-  // lmoni: try candidate paths
+  // lmoni: paths used by lmoni's own page (prism_longperiod.js)
   L.push('== lmoni (https) ==');
-  const timeCands = ['/monitor/webservice/server/pros/latest.json', '/webservice/server/pros/latest.json'];
-  let lLatest = null;
-  for (const p of timeCands) {
-    const r = await probe('lmoni', p, true);
-    L.push(line('time', p, r));
-    if (r.ok && lLatest === null) lLatest = parseLatest(r.body);
-  }
-  const l = jstStamp(lLatest ?? kLatest);
-  const mapCands = [
-    `/monitor/data/data/map_img/RealTimeImg/jma_s/${l.date}/${l.ts}.jma_s.gif`,
-    `/monitor/data/map_img/RealTimeImg/jma_s/${l.date}/${l.ts}.jma_s.gif`,
-    `/data/map_img/RealTimeImg/jma_s/${l.date}/${l.ts}.jma_s.gif`
-  ];
-  for (const p of mapCands) L.push(line('map', p, await probe('lmoni', p)));
-  const baseCands = [
-    '/monitor/data/data/map_img/CommonImg/base_map_w.gif',
-    '/monitor/data/map_img/CommonImg/base_map_w.gif'
-  ];
-  for (const p of baseCands) L.push(line('base map', p, await probe('lmoni', p)));
-  const eewCands = [`/monitor/webservice/hypo/eew/${l.ts}.json`, `/webservice/hypo/eew/${l.ts}.json`];
-  for (const p of eewCands) L.push(line('eew', p, await probe('lmoni', p, true)));
+  const lt = await probe('lmoni', '/img_svr/webservice/server/pros/latest.json', true);
+  L.push(line('time', '/img_svr/webservice/server/pros/latest.json', lt));
+  const l = jstStamp(parseLatest(lt.body) ?? kLatest);
+  const lmap = `/img_svr/data/map_img/RealTimeImg/jma_s/${l.date}/${l.ts}.jma_s.gif`;
+  L.push(line('map', lmap, await probe('lmoni', lmap)));
+  const lbase = '/monitor/data/data/map_img/CommonImg/base_map_w.gif';
+  L.push(line('base map', lbase, await probe('lmoni', lbase)));
+  const leew = `/monitor/webservice/hypo/eew/${l.ts}.json`;
+  L.push(line('eew', leew, await probe('lmoni', leew, true)));
   L.push('');
 
   L.push('== lmoni page scan ==');
