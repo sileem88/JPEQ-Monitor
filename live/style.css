@@ -77,6 +77,8 @@ button, select { font: inherit; color: inherit; }
 .eew-grid small { display: block; font-size: 10px; color: var(--muted); }
 .eew-grid b { font-size: 16px; font-variant-numeric: tabular-nums; }
 #eewInt { font-size: 22px; }
+.eew-areas { font-size: 12px; margin-top: 6px; color: var(--text); opacity: .85; }
+.eew-areas:empty { display: none; }
 
 /* Map: native image is 352 × 400; scaled to full width (≈430 × 489). */
 .map {

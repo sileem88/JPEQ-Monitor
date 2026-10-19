@@ -4,7 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>JPEQ Monitor</title>
-  <meta name="description" content="Lightweight mobile viewer for NIED 強震モニタ real-time strong-motion data.">
+  <meta name="description" content="Private mobile viewer for NIED 強震モニタ real-time intensity.">
+  <meta name="robots" content="noindex, nofollow">
   <meta name="theme-color" content="#0e1116">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
@@ -13,7 +14,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icons/icon-180.png">
-  <link rel="stylesheet" href="style.css?v=3">
+  <link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
   <div class="app">
@@ -43,6 +44,7 @@
         <div><small>深さ</small><b id="eewDepth">—</b></div>
         <div><small>発生時刻</small><b id="eewTime">—</b></div>
       </div>
+      <div class="eew-areas" id="eewAreas"></div>
     </section>
 
     <section class="map" aria-label="Real-time strong-motion map">
@@ -69,13 +71,14 @@
     </nav>
 
     <footer class="credit">
-      データ：<a href="https://www.kmoni.bosai.go.jp/" target="_blank" rel="noopener">国立研究開発法人 防災科学技術研究所（NIED）強震モニタ</a><br>
-      JPEQ Monitor is an unofficial personal viewer and is not affiliated with NIED.
-      Source: <span id="srcLabel">kmoni</span> · <span id="verLabel"></span>
+      地図・リアルタイム震度：<a href="https://www.kmoni.bosai.go.jp/" target="_blank" rel="noopener">国立研究開発法人 防災科学技術研究所（NIED）強震モニタ</a><br>
+      緊急地震速報：<a href="https://www.p2pquake.net/" target="_blank" rel="noopener">P2P地震情報</a>（気象庁）<br>
+      Private personal viewer, not affiliated with NIED, JMA or P2P地震情報.
+      Source: <span id="srcLabel">kmoni</span> · <span id="feedLabel">EEW feed connecting</span> · <span id="verLabel"></span>
     </footer>
   </div>
 
-  <script src="config.js?v=3"></script>
-  <script src="app.js?v=3"></script>
+  <script src="config.js?v=4"></script>
+  <script src="app.js?v=4"></script>
 </body>
 </html>

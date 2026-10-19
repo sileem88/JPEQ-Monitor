@@ -1,7 +1,7 @@
 // JPEQ Monitor service worker
 // Caches the app itself and the static base map so the page opens
 // even when the network is congested. Live frames are never cached.
-const CACHE = 'jpeq-v3';
+const CACHE = 'jpeq-v4';
 const SHELL = ['./', 'index.html', 'style.css', 'app.js', 'config.js', 'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-180.png', 'icons/icon-512.png'];
 
 self.addEventListener('install', (e) => {
@@ -32,6 +32,9 @@ self.addEventListener('fetch', (e) => {
     );
     return;
   }
+
+  // Live NIED data through the Worker: never cached here.
+  if (url.origin === self.location.origin && /^\/(kmoni|lmoni)\//.test(url.pathname)) return;
 
   // App shell: network first (so updates arrive immediately), cache if offline/slow.
   if (url.origin === self.location.origin) {

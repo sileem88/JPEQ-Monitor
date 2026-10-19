@@ -1,18 +1,18 @@
 /*
- * JPEQ Monitor relay (Cloudflare Worker, free plan)
+ * JPEQ Monitor — private site + NIED relay (Cloudflare Worker, free plan)
  *
- * Why: the GitHub Pages site is https, and iPhone Safari blocks the http-only
- * kmoni server from an https page. This relay fetches NIED's files and hands
- * them to the page over https.
+ * Put this Worker behind Cloudflare Access so only you can open it:
+ *   Workers & Pages → jpeq-relay → Settings → Domains & Routes →
+ *   workers.dev → Enable Cloudflare Access (then add your email).
  *
- *   https://<relay>/kmoni/<path>  ->  http://www.kmoni.bosai.go.jp/<path>
- *   https://<relay>/lmoni/<path>  ->  https://www.lmoni.bosai.go.jp/<path>
- *   https://<relay>/test          ->  checks kmoni and lmoni, and lists the
- *                                     data paths lmoni's own page uses
+ *   https://<worker>/              -> the JPEQ Monitor app (files from the
+ *                                     GitHub repo's live/ folder)
+ *   https://<worker>/kmoni/<path>  -> http://www.kmoni.bosai.go.jp/<path>
+ *   https://<worker>/lmoni/<path>  -> https://www.lmoni.bosai.go.jp/<path>
+ *   https://<worker>/test          -> checks kmoni and lmoni are reachable
  *
- * Only NIED's .gif and .json files can pass through. Timestamped frames
- * are cached at Cloudflare, so each second is fetched from NIED once,
- * however many times the page asks for it.
+ * Only NIED's .gif and .json files pass through. Timestamped frames are
+ * cached at Cloudflare, so each second is fetched from NIED once.
  */
 
 const HOSTS = {
@@ -47,7 +47,8 @@ async function fetchNied(key, path, init = {}, timeoutMs = 4000) {
 }
 
 // Sites allowed to read data through this relay.
-const ALLOWED_ORIGINS = ['https://sileem88.github.io'];
+// The app is served from this Worker itself, so no other site may read data through it.
+const ALLOWED_ORIGINS = [];
 
 function corsHeaders(request) {
   const origin = request.headers.get('Origin');
@@ -118,7 +119,7 @@ async function discoverLmoniPaths() {
 }
 
 async function selfTest() {
-  const L = ['JPEQ relay self-test (relay v3)', ''];
+  const L = ['JPEQ relay self-test (relay v4)', ''];
 
   // kmoni
   L.push('== kmoni ==');
@@ -149,6 +150,47 @@ async function selfTest() {
   return new Response(L.join('\n'), { headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' } });
 }
 
+/* ---------------- app files ---------------- */
+
+// The app's code is read from the public GitHub repo (code only, no NIED data),
+// so pushing to GitHub updates the site without re-pasting this Worker.
+const APP_SOURCE = 'https://raw.githubusercontent.com/sileem88/JPEQ-Monitor/main/live';
+const APP_FILES = {
+  '/': ['index.html', 'text/html; charset=utf-8'],
+  '/index.html': ['index.html', 'text/html; charset=utf-8'],
+  '/style.css': ['style.css', 'text/css; charset=utf-8'],
+  '/app.js': ['app.js', 'text/javascript; charset=utf-8'],
+  '/config.js': ['config.js', 'text/javascript; charset=utf-8'],
+  '/sw.js': ['sw.js', 'text/javascript; charset=utf-8'],
+  '/manifest.webmanifest': ['manifest.webmanifest', 'application/manifest+json'],
+  '/icons/icon.svg': ['icons/icon.svg', 'image/svg+xml'],
+  '/icons/icon-180.png': ['icons/icon-180.png', 'image/png'],
+  '/icons/icon-512.png': ['icons/icon-512.png', 'image/png']
+};
+
+async function serveApp(pathname) {
+  const [file, type] = APP_FILES[pathname];
+  let r;
+  try {
+    r = await fetch(`${APP_SOURCE}/${file}`, {
+      signal: AbortSignal.timeout(6000),
+      cf: { cacheEverything: true, cacheTtl: 60 } // updates show up within about a minute
+    });
+  } catch (e) {
+    return new Response('App files unreachable', { status: 502 });
+  }
+  if (!r.ok) return new Response('Not found', { status: 404 });
+  return new Response(r.body, {
+    headers: {
+      'Content-Type': type,
+      'Cache-Control': 'no-cache',
+      'X-Robots-Tag': 'noindex, nofollow',
+      'Referrer-Policy': 'same-origin',
+      'X-Content-Type-Options': 'nosniff'
+    }
+  });
+}
+
 /* ---------------- relay ---------------- */
 
 export default {
@@ -158,7 +200,7 @@ export default {
     if (request.method !== 'GET') return new Response('Method not allowed', { status: 405, headers: cors });
 
     const url = new URL(request.url);
-    if (url.pathname === '/') return new Response('JPEQ relay is running. Open /test to check NIED.', { headers: cors });
+    if (APP_FILES[url.pathname]) return serveApp(url.pathname);
     if (url.pathname === '/test') return selfTest();
 
     const m = /^\/(kmoni|lmoni)(\/.+)$/.exec(url.pathname);

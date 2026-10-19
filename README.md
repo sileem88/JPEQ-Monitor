@@ -1,70 +1,48 @@
 # JPEQ Monitor
 
-A lightweight, phone-first viewer for real-time strong-motion data from Japan,
-designed for iPhone screens (430 × 932 CSS px) and hosted on GitHub Pages.
+Two parts, kept separate so each stays within its data provider's terms:
 
-**All data comes from NIED.** JPEQ Monitor displays data published by
-国立研究開発法人 防災科学技術研究所 (NIED) through
-[強震モニタ (Kyoshin Monitor)](https://www.kmoni.bosai.go.jp/) and
-長周期地震動モニタ. This is an unofficial personal viewer; it is not affiliated
-with or endorsed by NIED, and it uses no NIED logos or branding.
-For official information always refer to NIED and the Japan Meteorological Agency.
+| Part | Who can see it | Data |
+|---|---|---|
+| **Private live viewer** (`live/` + `proxy/worker.js`) | Only you, behind Cloudflare Access | NIED 強震モニタ リアルタイム震度 frames, shown unmodified; EEW text from P2P地震情報 |
+| **Public JMA map** (`docs/`, coming next) | Anyone | JMA earthquake information via P2P地震情報, on GSI 地理院タイル |
 
-## What it does
+## Private live viewer
 
-- Live real-time map (updates every second), same layers as kmoni:
-  計測震度 / PGA / PGV / PGD / 応答スペクトル, surface (地表) or borehole (地中)
-- 緊急地震速報 (EEW) panel with region, expected max intensity, magnitude, depth
-- EEW estimated-intensity and P/S-wave overlays on the map
-- **Replay**: tap **−10 min / −5 min / −1 min** to replay from that point at 1×;
-  pause/resume while replaying; **LIVE** returns to real time
-- Automatic fallback from kmoni to the lmoni host when kmoni stops responding,
-  and a retry back to kmoni every 2 minutes
-- Open the site with `?source=lmoni` to pin it to lmoni (for testing the backup)
-- Keeps the last frame on screen and retries quietly instead of showing an error
-- Stops all requests while the page is in the background
-- Add to Home Screen for an app-like, full-screen view; the app and base map are
-  cached so the page itself opens even on a congested network
+A phone-first (430 × 932) viewer for NIED's 強震モニタ リアルタイム震度 map.
 
-## Publish on GitHub Pages
+- Live frame every second; kmoni, with lmoni as automatic backup
+- **−10 / −5 / −1 min** replay at 1×, pause, **LIVE** to return
+- 緊急地震速報（警報） panel from P2P地震情報 (JMA, received through a licensed feed)
+- NIED's own EEW map layers (estimated intensity, P/S waves) when present
+- Add to Home Screen for an app-like view
 
-1. Upload every file in this folder to the root of the `JPEQ-Monitor` repository
-   (keep the `icons/` and `proxy/` folders and the empty `.nojekyll` file).
-2. In the repository: **Settings → Pages → Build and deployment → Source:
-   Deploy from a branch → Branch: `main` / `(root)` → Save**.
-3. After a minute the site is at `https://<your-username>.github.io/JPEQ-Monitor/`.
-4. On iPhone, open it in Safari → Share → **Add to Home Screen**.
+### Why it is private
 
-## The JPEQ relay (required on iPhone)
+NIED's terms allow its 強震モニタ content to be copied only for 私的使用 (private use)
+or quotation, and refuse 転載・改変・送信・再配布. So the viewer and the NIED relay
+run on one Cloudflare Worker that only you can open (Cloudflare Access). The images
+are displayed as NIED publishes them: no colour reading, no per-station values.
+EEW text comes from P2P地震情報 rather than from 強震モニタ.
 
-NIED's monitors serve plain http, and Safari blocks http requests from an
-https page such as GitHub Pages. `proxy/worker.js` is a small Cloudflare
-Worker (free plan) that fetches NIED's files over http and passes them to the
-page over https. It only passes NIED `.gif`/`.json` files, and it caches each
-timestamped frame so NIED is asked for it once.
+### Set-up
 
-1. Create a free Cloudflare account and open **Workers & Pages**.
-2. **Create → Create Worker**, name it `jpeq-relay`, **Deploy**.
-3. **Edit code**, replace everything with `proxy/worker.js`, **Deploy**.
-4. Open `https://jpeq-relay.<your-subdomain>.workers.dev/test` to check kmoni and lmoni are reachable
-   (the test also lists the data paths lmoni's own page uses).
-5. Put that address in `config.js` → `relay`, or open the site once with
-   `?relay=https://jpeq-relay.<your-subdomain>.workers.dev` (remembered on that device).
+1. Cloudflare → **Workers & Pages** → `jpeq-relay` → **Edit code** → paste
+   `proxy/worker.js` → **Deploy**.
+2. **Settings → Domains & Routes** → on the `workers.dev` row, **Enable Cloudflare Access**,
+   then **Manage Cloudflare Access** and allow only your email address(es).
+3. Open `https://jpeq-relay.<subdomain>.workers.dev/`, sign in with the emailed code,
+   then Safari → Share → **Add to Home Screen**.
 
-## Files
+The Worker reads the app's code from this repo's `live/` folder, so changes pushed
+to GitHub appear within about a minute without re-pasting the Worker.
+`/test` on the Worker checks that kmoni and lmoni are reachable.
+`?source=lmoni` pins the viewer to the backup server for testing.
 
-| File | Purpose |
-|---|---|
-| `index.html`, `style.css` | Layout, sized for 430 px wide |
-| `app.js` | Polling, fallback, EEW, replay |
-| `config.js` | NIED URL patterns, proxy setting, replay buttons |
-| `sw.js`, `manifest.webmanifest`, `icons/` | Home-screen app + offline shell |
-| `proxy/worker.js` | JPEQ relay (Cloudflare Worker) |
+## Credits
 
-## Notes
+- 地図・リアルタイム震度: 国立研究開発法人 防災科学技術研究所 (NIED) 強震モニタ / 長周期地震動モニタ
+- 緊急地震速報・地震情報: P2P地震情報 (source: 気象庁)
 
-- The colour bar is an approximate guide to kmoni's colour scale; the map
-  colours themselves are NIED's own.
-- Data URL patterns live in `config.js`; if NIED changes a path, fix it there.
-- Please keep request rates as they are (one frame per second, paused in the
-  background) to avoid adding load to NIED's servers during events.
+JPEQ Monitor is an unofficial personal project, not affiliated with NIED, JMA or P2P地震情報.
+For official information, refer to NIED and the Japan Meteorological Agency.
