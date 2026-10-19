@@ -1,13 +1,14 @@
 /*
  * JPEQ Monitor relay (Cloudflare Worker, free plan)
  *
- * Why: the GitHub Pages site is https, NIED's monitors serve plain http,
- * and iPhone Safari blocks http requests from an https page. This relay
- * fetches NIED's files over http and hands them to the page over https.
+ * Why: the GitHub Pages site is https, and iPhone Safari blocks the http-only
+ * kmoni server from an https page. This relay fetches NIED's files and hands
+ * them to the page over https.
  *
  *   https://<relay>/kmoni/<path>  ->  http://www.kmoni.bosai.go.jp/<path>
- *   https://<relay>/lmoni/<path>  ->  http://www.lmoni.bosai.go.jp/<path>
- *   https://<relay>/test          ->  quick check that NIED is reachable
+ *   https://<relay>/lmoni/<path>  ->  https://www.lmoni.bosai.go.jp/<path>
+ *   https://<relay>/test          ->  checks kmoni and lmoni, and lists the
+ *                                     data paths lmoni's own page uses
  *
  * Only NIED's .gif and .json files can pass through. Timestamped frames
  * are cached at Cloudflare, so each second is fetched from NIED once,
@@ -19,14 +20,20 @@ const HOSTS = {
   lmoni: 'www.lmoni.bosai.go.jp'
 };
 
-// Scheme to try first for each host; the other one is tried if it fails.
-const SCHEMES = { kmoni: ['http', 'https'], lmoni: ['https', 'http'] };
+// kmoni answers on http; lmoni is https-only (http just times out).
+const SCHEMES = { kmoni: ['http', 'https'], lmoni: ['https'] };
+
+const UA = 'Mozilla/5.0 (JPEQ Monitor relay; personal viewer; +https://sileem88.github.io/JPEQ-Monitor/)';
 
 async function fetchNied(key, path, init = {}, timeoutMs = 4000) {
   let lastErr;
   for (const scheme of SCHEMES[key]) {
     try {
-      const r = await fetch(`${scheme}://${HOSTS[key]}${path}`, { ...init, signal: AbortSignal.timeout(timeoutMs) });
+      const r = await fetch(`${scheme}://${HOSTS[key]}${path}`, {
+        ...init,
+        headers: { 'User-Agent': UA, ...(init.headers || {}) },
+        signal: AbortSignal.timeout(timeoutMs)
+      });
       if (r.status < 500) return r;
       lastErr = new Error('HTTP ' + r.status);
     } catch (e) { lastErr = e; }
@@ -47,30 +54,106 @@ function corsHeaders(request) {
   return h;
 }
 
-async function selfTest() {
-  const now = new Date(Date.now() + 9 * 3600e3 - 3000); // JST, 3 s ago
-  const p = (n) => String(n).padStart(2, '0');
-  const date = `${now.getUTCFullYear()}${p(now.getUTCMonth() + 1)}${p(now.getUTCDate())}`;
-  const ts = `${date}${p(now.getUTCHours())}${p(now.getUTCMinutes())}${p(now.getUTCSeconds())}`;
-  const checks = {
-    'kmoni time':  ['kmoni', '/webservice/server/pros/latest.json'],
-    'kmoni map':   ['kmoni', `/data/map_img/RealTimeImg/jma_s/${date}/${ts}.jma_s.gif`],
-    'lmoni time':  ['lmoni', '/monitor/webservice/server/pros/latest.json'],
-    'lmoni map':   ['lmoni', `/monitor/data/data/map_img/RealTimeImg/jma_s/${date}/${ts}.jma_s.gif`]
-  };
-  const lines = ['JPEQ relay self-test', ''];
-  for (const [name, [key, path]] of Object.entries(checks)) {
-    const t0 = Date.now();
-    try {
-      const r = await fetchNied(key, path);
-      const body = name.endsWith('time') ? (await r.text()).slice(0, 120) : `${(await r.arrayBuffer()).byteLength} bytes`;
-      lines.push(`${name}: HTTP ${r.status} in ${Date.now() - t0} ms — ${body}`);
-    } catch (e) {
-      lines.push(`${name}: FAILED after ${Date.now() - t0} ms — ${e.message}`);
-    }
-  }
-  return new Response(lines.join('\n'), { headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' } });
+/* ---------------- self-test ---------------- */
+
+const pad = (n) => String(n).padStart(2, '0');
+function jstStamp(ms) {
+  const d = new Date(ms + 9 * 3600e3);
+  const date = `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}`;
+  return { date, ts: `${date}${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}` };
 }
+function parseLatest(text) {
+  const m = /"latest_time"\s*:\s*"(\d{4})\/(\d{2})\/(\d{2}) (\d{2}):(\d{2}):(\d{2})"/.exec(text || '');
+  return m ? Date.UTC(+m[1], m[2] - 1, +m[3], +m[4], +m[5], +m[6]) - 9 * 3600e3 : null;
+}
+
+async function probe(key, path, asText) {
+  const t0 = Date.now();
+  try {
+    const r = await fetchNied(key, path);
+    const body = asText ? (await r.text()) : (await r.arrayBuffer()).byteLength;
+    return { ok: r.status === 200, status: r.status, ms: Date.now() - t0, body };
+  } catch (e) {
+    return { ok: false, status: 'FAILED', ms: Date.now() - t0, body: e.message };
+  }
+}
+
+function line(label, path, res) {
+  const mark = res.ok ? 'OK ' : '-- ';
+  const detail = typeof res.body === 'number' ? `${res.body} bytes` : String(res.body).slice(0, 90).replace(/\s+/g, ' ');
+  return `${mark}${label}: ${res.status} in ${res.ms} ms  ${path}\n      ${detail}`;
+}
+
+// Read lmoni's page and scripts and list every data path they mention.
+async function discoverLmoniPaths() {
+  const out = [];
+  const page = await probe('lmoni', '/monitor/', true);
+  out.push(`lmoni page /monitor/: ${page.status} in ${page.ms} ms`);
+  if (!page.ok) return out;
+  const scripts = [...page.body.matchAll(/<script[^>]+src=["']([^"']+)["']/gi)].map((m) => m[1]).slice(0, 12);
+  const found = new Set();
+  const grab = (txt) => {
+    for (const m of txt.matchAll(/["'`]([^"'`\s]*(?:map_img|webservice|RealTimeImg|CommonImg|latest\.json)[^"'`\s]*)["'`]/g)) found.add(m[1]);
+  };
+  grab(page.body);
+  for (const src of scripts) {
+    if (/^https?:\/\//.test(src) && !src.includes(HOSTS.lmoni)) continue;
+    const path = src.startsWith('http') ? new URL(src).pathname : src.startsWith('/') ? src : '/monitor/' + src.replace(/^\.\//, '');
+    const js = await probe('lmoni', path, true);
+    out.push(`  script ${path}: ${js.status}`);
+    if (js.ok) grab(js.body);
+  }
+  out.push('  data paths mentioned by lmoni:');
+  if (!found.size) out.push('    (none found)');
+  for (const p of [...found].slice(0, 40)) out.push('    ' + p);
+  return out;
+}
+
+async function selfTest() {
+  const L = ['JPEQ relay self-test', ''];
+
+  // kmoni
+  L.push('== kmoni ==');
+  const kt = await probe('kmoni', '/webservice/server/pros/latest.json', true);
+  L.push(line('time', '/webservice/server/pros/latest.json', kt));
+  const kLatest = parseLatest(kt.body) ?? Date.now() - 3000;
+  const k = jstStamp(kLatest);
+  const kmap = `/data/map_img/RealTimeImg/jma_s/${k.date}/${k.ts}.jma_s.gif`;
+  L.push(line('map', kmap, await probe('kmoni', kmap)));
+  L.push('');
+
+  // lmoni: try candidate paths
+  L.push('== lmoni (https) ==');
+  const timeCands = ['/monitor/webservice/server/pros/latest.json', '/webservice/server/pros/latest.json'];
+  let lLatest = null;
+  for (const p of timeCands) {
+    const r = await probe('lmoni', p, true);
+    L.push(line('time', p, r));
+    if (r.ok && lLatest === null) lLatest = parseLatest(r.body);
+  }
+  const l = jstStamp(lLatest ?? kLatest);
+  const mapCands = [
+    `/monitor/data/data/map_img/RealTimeImg/jma_s/${l.date}/${l.ts}.jma_s.gif`,
+    `/monitor/data/map_img/RealTimeImg/jma_s/${l.date}/${l.ts}.jma_s.gif`,
+    `/data/map_img/RealTimeImg/jma_s/${l.date}/${l.ts}.jma_s.gif`
+  ];
+  for (const p of mapCands) L.push(line('map', p, await probe('lmoni', p)));
+  const baseCands = [
+    '/monitor/data/data/map_img/CommonImg/base_map_w.gif',
+    '/monitor/data/map_img/CommonImg/base_map_w.gif'
+  ];
+  for (const p of baseCands) L.push(line('base map', p, await probe('lmoni', p)));
+  const eewCands = [`/monitor/webservice/hypo/eew/${l.ts}.json`, `/webservice/hypo/eew/${l.ts}.json`];
+  for (const p of eewCands) L.push(line('eew', p, await probe('lmoni', p, true)));
+  L.push('');
+
+  L.push('== lmoni page scan ==');
+  try { L.push(...await discoverLmoniPaths()); } catch (e) { L.push('scan failed: ' + e.message); }
+
+  return new Response(L.join('\n'), { headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' } });
+}
+
+/* ---------------- relay ---------------- */
 
 export default {
   async fetch(request) {
@@ -79,7 +162,7 @@ export default {
     if (request.method !== 'GET') return new Response('Method not allowed', { status: 405, headers: cors });
 
     const url = new URL(request.url);
-    if (url.pathname === '/' ) return new Response('JPEQ relay is running. Open /test to check NIED.', { headers: cors });
+    if (url.pathname === '/') return new Response('JPEQ relay is running. Open /test to check NIED.', { headers: cors });
     if (url.pathname === '/test') return selfTest();
 
     const m = /^\/(kmoni|lmoni)(\/.+)$/.exec(url.pathname);
@@ -90,7 +173,7 @@ export default {
     // Frames named by timestamp never change; "latest" style files change every second.
     const timestamped = /\d{14}\.[a-z_0-9.]+$/.test(m[2]);
     const isBaseMap = m[2].includes('/CommonImg/');
-    const ttl = timestamped ? 86400 : isBaseMap ? 86400 : 1;
+    const ttl = timestamped || isBaseMap ? 86400 : 1;
 
     let upstream;
     try {
@@ -103,7 +186,7 @@ export default {
 
     const headers = new Headers(cors);
     headers.set('Content-Type', upstream.headers.get('Content-Type') || (m[2].endsWith('.json') ? 'application/json' : 'image/gif'));
-    headers.set('Cache-Control', timestamped || isBaseMap ? 'public, max-age=86400, immutable' : 'no-store');
+    headers.set('Cache-Control', upstream.status === 200 && (timestamped || isBaseMap) ? 'public, max-age=86400, immutable' : 'no-store');
     return new Response(upstream.body, { status: upstream.status, headers });
   }
 };

@@ -20,6 +20,7 @@ For official information always refer to NIED and the Japan Meteorological Agenc
   pause/resume while replaying; **LIVE** returns to real time
 - Automatic fallback from kmoni to the lmoni host when kmoni stops responding,
   and a retry back to kmoni every 2 minutes
+- Open the site with `?source=lmoni` to pin it to lmoni (for testing the backup)
 - Keeps the last frame on screen and retries quietly instead of showing an error
 - Stops all requests while the page is in the background
 - Add to Home Screen for an app-like, full-screen view; the app and base map are
@@ -45,7 +46,8 @@ timestamped frame so NIED is asked for it once.
 1. Create a free Cloudflare account and open **Workers & Pages**.
 2. **Create → Create Worker**, name it `jpeq-relay`, **Deploy**.
 3. **Edit code**, replace everything with `proxy/worker.js`, **Deploy**.
-4. Open `https://jpeq-relay.<your-subdomain>.workers.dev/test` to check NIED is reachable.
+4. Open `https://jpeq-relay.<your-subdomain>.workers.dev/test` to check kmoni and lmoni are reachable
+   (the test also lists the data paths lmoni's own page uses).
 5. Put that address in `config.js` → `relay`, or open the site once with
    `?relay=https://jpeq-relay.<your-subdomain>.workers.dev` (remembered on that device).
 

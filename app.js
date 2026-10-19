@@ -50,6 +50,7 @@
     pausedAt: null,        // frame time held while paused
     replayMin: null,
     srcIdx: 0,
+    forcedSrc: false,
     switchedAt: 0,
     offsetMs: -CFG.defaultDelayMs, // server-latest minus device clock
     synced: false,
@@ -192,7 +193,7 @@
     if (document.hidden) return;
 
     if (S.mode === 'live' && Date.now() - S.lastSync > SYNC_EVERY_MS) syncClock();
-    if (S.srcIdx !== 0 && Date.now() - S.switchedAt > RETRY_PRIMARY_MS) switchSource(0);
+    if (!S.forcedSrc && S.srcIdx !== 0 && Date.now() - S.switchedAt > RETRY_PRIMARY_MS) switchSource(0);
 
     const t = frameTime();
     renderClock(t);
@@ -218,7 +219,7 @@
       S.fails++;
       // Before the clock is synced, the newest second may not exist yet: lean back.
       if (S.mode === 'live' && !S.synced && S.offsetMs > -MAX_EXTRA_DELAY_MS) S.offsetMs -= 1000;
-      if (S.fails >= FAILS_BEFORE_SWITCH && CFG.sources.length > 1) {
+      if (!S.forcedSrc && S.fails >= FAILS_BEFORE_SWITCH && CFG.sources.length > 1) {
         switchSource((S.srcIdx + 1) % CFG.sources.length);
         setStatus('warn', `Switching to ${src().label}…`);
       } else {
@@ -343,6 +344,13 @@
   /* ---------- init ---------- */
 
   function init() {
+    // ?source=lmoni pins that source (for testing); it does not auto-switch.
+    try {
+      const want = new URLSearchParams(location.search).get('source');
+      const idx = CFG.sources.findIndex((x) => x.id === want);
+      if (idx >= 0) { S.srcIdx = idx; S.forcedSrc = true; }
+    } catch { /* ignore */ }
+
     el.jumps.innerHTML = CFG.replayMinutes
       .map((m) => `<button type="button" data-min="${m}" aria-pressed="false">−${m} min</button>`).join('');
     el.jumps.addEventListener('click', (e) => {
@@ -355,7 +363,7 @@
       if (!document.hidden) { S.lastSync = 0; refreshNow(); }
     });
 
-    el.src.textContent = src().label + (CFG.relayActive ? ' via JPEQ relay' : '');
+    el.src.textContent = src().label + (S.forcedSrc ? ' (pinned)' : '') + (CFG.relayActive ? ' via JPEQ relay' : '');
     renderLegend();
     renderControls();
     loadBaseMap();
