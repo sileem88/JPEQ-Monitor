@@ -5,7 +5,7 @@ Two parts, kept separate so each stays within its data provider's terms:
 | Part | Who can see it | Data |
 |---|---|---|
 | **Private live viewer** (`live/` + `proxy/worker.js`) | Only you, behind Cloudflare Access | NIED 強震モニタ リアルタイム震度 frames, shown unmodified; EEW text from P2P地震情報 |
-| **Public JMA map** (`docs/`, coming next) | Anyone | JMA earthquake information via P2P地震情報, on GSI 地理院タイル |
+| **Public JMA map** (`docs/`) | Anyone | JMA earthquake information (official station intensities), on GSI 地理院タイル |
 
 ## Private live viewer
 
@@ -39,10 +39,35 @@ to GitHub appear within about a minute without re-pasting the Worker.
 `/test` on the Worker checks that kmoni and lmoni are reachable.
 `?source=lmoni` pins the viewer to the backup server for testing.
 
+## Public JMA map
+
+Official seismic intensity at each JMA intensity station (JMA, local-government and
+NIED stations as published in JMA's earthquake information), with the epicentre,
+magnitude, depth, tsunami comment and a list of recent earthquakes. Refreshes every
+15 s; a new earthquake is selected automatically. Right after a quake JMA first
+publishes area-level 震度速報; station dots appear with the follow-up report.
+
+- Data: 気象庁ホームページ（地震情報）, reused under JMA's 公共データ利用規約（第1.0版）
+  with attribution and a note that JPEQ Map processed it.
+- Map: 地理院タイル（淡色地図）, loaded in real time with attribution (no application
+  needed for this use).
+- No NIED 強震モニタ content is used on the public map.
+
+### Publishing
+
+Repository **Settings → Pages → Deploy from a branch → `main` / `/docs` → Save**.
+The map is then at `https://<username>.github.io/JPEQ-Monitor/`.
+
+If the status line keeps saying 気象庁に接続できません, JMA is blocking cross-site
+reads: deploy `proxy/public-worker.js` as a separate, public Worker and add its
+`/quake` URL to `jmaBases` in `docs/config.js`.
+
 ## Credits
 
 - 地図・リアルタイム震度: 国立研究開発法人 防災科学技術研究所 (NIED) 強震モニタ / 長周期地震動モニタ
-- 緊急地震速報・地震情報: P2P地震情報 (source: 気象庁)
+- 緊急地震速報 (private viewer): P2P地震情報 (source: 気象庁)
+- 地震情報 (public map): 気象庁ホームページ
+- 地図 (public map): 国土地理院 地理院タイル
 
-JPEQ Monitor is an unofficial personal project, not affiliated with NIED, JMA or P2P地震情報.
+JPEQ Monitor is an unofficial personal project, not affiliated with NIED, JMA, GSI or P2P地震情報.
 For official information, refer to NIED and the Japan Meteorological Agency.

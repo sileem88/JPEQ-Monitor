@@ -1,0 +1,103 @@
+:root {
+  --bg: #0e1116;
+  --panel: #171b22;
+  --panel-2: #1f252e;
+  --line: #2a313c;
+  --text: #e8ecf1;
+  --muted: #8b95a3;
+  --accent: #39c0ff;
+  --ok: #3ddc84;
+  --warn: #ffb020;
+  --bad: #ff4d4f;
+  --radius: 12px;
+
+  /* 震度の色（気象庁の震度分布図で用いられる配色） */
+  --i1: #f2f2ff; --i2: #00aaff; --i3: #0041ff; --i4: #fae696; --i5m: #ffe600;
+  --i5p: #ff9900; --i6m: #ff2800; --i6p: #a50021; --i7: #b40068;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #f3f5f8; --panel: #ffffff; --panel-2: #eef1f5; --line: #d9dee6;
+    --text: #12161c; --muted: #5c6673; color-scheme: light;
+  }
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--text); }
+body {
+  font: 15px/1.4 -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+a { color: var(--accent); text-decoration: none; }
+
+/* Designed for 430 × 932 CSS px; fluid below that. */
+.app {
+  width: 100%; max-width: 430px; margin: 0 auto; min-height: 100dvh;
+  padding: calc(env(safe-area-inset-top) + 6px) 0 calc(env(safe-area-inset-bottom) + 8px);
+  display: flex; flex-direction: column; gap: 8px;
+}
+
+.top { display: flex; align-items: center; justify-content: space-between; padding: 0 14px; height: 32px; }
+.brand { font-weight: 800; letter-spacing: .04em; font-size: 17px; }
+.brand span { font-weight: 500; color: var(--muted); }
+.status { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.dot.ok { background: var(--ok); } .dot.warn { background: var(--warn); } .dot.bad { background: var(--bad); }
+
+/* Map */
+.map-wrap { position: relative; }
+#map { width: 100%; height: 470px; background: #dfe6ec; }
+.leaflet-container { font: inherit; }
+.leaflet-control-attribution { font-size: 10px; max-width: 75%; }
+.legend {
+  position: absolute; left: 8px; top: 8px; z-index: 500; display: flex; gap: 2px;
+  padding: 3px; border-radius: 8px; background: rgba(255,255,255,.85); box-shadow: 0 1px 4px rgba(0,0,0,.2);
+}
+.legend .i { min-width: 22px; padding: 1px 3px; border-radius: 4px; text-align: center; font-size: 11px; font-weight: 700; }
+.toast {
+  position: absolute; left: 50%; bottom: 26px; transform: translateX(-50%); z-index: 600;
+  background: rgba(0,0,0,.8); color: #fff; padding: 7px 12px; border-radius: 999px; font-size: 13px; white-space: nowrap;
+}
+
+/* Intensity chips (map legend, card, list) */
+.i1 { background: var(--i1); color: #111; } .i2 { background: var(--i2); color: #fff; } .i3 { background: var(--i3); color: #fff; }
+.i4 { background: var(--i4); color: #111; } .i5m { background: var(--i5m); color: #111; } .i5p { background: var(--i5p); color: #111; }
+.i6m { background: var(--i6m); color: #fff; } .i6p { background: var(--i6p); color: #fff; } .i7 { background: var(--i7); color: #fff; }
+.inone { background: var(--panel-2); color: var(--muted); }
+
+/* Station markers */
+.st {
+  display: flex; align-items: center; justify-content: center; border-radius: 4px;
+  font-weight: 800; line-height: 1; box-shadow: 0 0 0 1px rgba(0,0,0,.35);
+}
+.epi { color: #e00; font-size: 30px; font-weight: 900; line-height: 1; text-shadow: 0 0 3px #fff, 0 0 3px #fff; }
+
+/* Card */
+.card { margin: 0 10px; padding: 10px 12px; border-radius: var(--radius); background: var(--panel); border: 1px solid var(--line); }
+.card-main { display: flex; gap: 12px; align-items: center; }
+.maxint {
+  flex: none; width: 58px; height: 58px; border-radius: 10px; display: flex; align-items: center; justify-content: center;
+  font-size: 24px; font-weight: 900;
+}
+.maxint small { font-size: 11px; }
+.c-title { font-size: 12px; color: var(--muted); }
+.c-region { font-size: 19px; font-weight: 800; }
+.c-meta { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.c-comment { font-size: 12px; margin-top: 6px; }
+.c-comment:empty, .c-note:empty { display: none; }
+.c-note { font-size: 11px; margin-top: 4px; color: var(--muted); }
+
+/* List */
+.list-wrap { margin: 0 10px; border-radius: var(--radius); background: var(--panel); border: 1px solid var(--line); overflow: hidden; }
+.list-head { font-size: 12px; font-weight: 700; color: var(--muted); padding: 8px 12px 6px; }
+.list { list-style: none; margin: 0; padding: 0; max-height: 300px; overflow-y: auto; }
+.list li { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-top: 1px solid var(--line); cursor: pointer; }
+.list li[aria-current="true"] { background: var(--panel-2); }
+.list .chip { flex: none; width: 36px; height: 30px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; }
+.list .l-text { min-width: 0; }
+.list .l-region { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.list .l-meta { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.credit { padding: 2px 14px 0; font-size: 11px; color: var(--muted); line-height: 1.5; }
